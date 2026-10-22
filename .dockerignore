@@ -1,0 +1,9 @@
+.git
+.env
+.env.*
+!.env.example
+__pycache__
+*.py[cod]
+brightcore.sqlite3*
+private_uploads
+tests
