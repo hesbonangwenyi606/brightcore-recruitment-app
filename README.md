@@ -89,12 +89,65 @@ The repository includes a Render Blueprint in `render.yaml`. It builds the Docke
 
 Applications and uploaded CVs are stored on the persistent disk. The app uses SQLite and in-memory login sessions, so keep it as a single service instance; do not scale it to multiple instances. The Render deployment starts with a fresh database and the three sample jobs; it does not automatically copy local applications or CVs. Applicant email remains optional and can be configured in Render's Environment page using the SMTP variables listed above. Store those credentials as secrets and never commit them.
 
+## Deploy to Vercel with durable data
+
+Vercel containers are stateless, so the Vercel deployment uses Supabase Postgres for jobs and applications and a **private** Supabase Storage bucket for CVs. The browser uploads each CV directly to Storage using a short-lived signed upload URL; CVs are never made public. Local Docker Compose continues to use SQLite and its named volume.
+
+### 1. Create the Supabase resources
+
+1. Create a Supabase project at [supabase.com/dashboard](https://supabase.com/dashboard).
+2. In **Storage**, create a private bucket named `candidate-cvs`. Set the file size limit to 10 MB and allowed MIME type to `application/pdf`.
+3. In **Project Settings → API**, copy the project URL and the `service_role` key. The service role key is secret; do not put it in the browser or commit it.
+4. In **Project Settings → Database**, copy the Transaction pooler connection string for Vercel and ensure its SSL mode is `require`. Replace the password placeholder with your database password.
+
+The app creates its tables and three sample jobs the first time it connects to an empty database. It does not import your local SQLite data or existing CVs.
+
+### 2. Deploy from GitHub
+
+1. Push the latest code to GitHub.
+2. In Vercel, choose **Add New → Project**, import `hesbonangwenyi606/brightcore-recruitment-app`, and deploy the `main` branch. Vercel detects `Dockerfile.vercel` and builds the Python HTTP server as a container.
+3. Before or after the first build, open **Project Settings → Environment Variables** and add these values for Production (and Preview if you want preview deployments):
+
+   | Variable | Value |
+   | --- | --- |
+   | `DATABASE_URL` | Supabase Postgres connection string |
+   | `SUPABASE_URL` | Supabase project URL |
+   | `SUPABASE_SERVICE_ROLE_KEY` | Supabase `service_role` key; keep secret |
+   | `SUPABASE_CV_BUCKET` | `candidate-cvs` |
+   | `SESSION_SECRET` | A new random secret with at least 32 characters |
+   | `ADMIN_PASSWORD` | A strong, unique initial admin password |
+   | `SECURE_COOKIES` | `true` |
+   | `PORT` | `80` |
+
+   Add the optional `SMTP_*` values from the table above if you want applicant status emails. Never paste database, service role, SMTP, or session secrets into GitHub or chat.
+
+   To generate a session secret locally in Windows PowerShell, run:
+
+   ```powershell
+   $bytes = New-Object byte[] 32
+   [Security.Cryptography.RandomNumberGenerator]::Create().GetBytes($bytes)
+   [Convert]::ToBase64String($bytes)
+   ```
+
+   Copy the generated value directly into Vercel's `SESSION_SECRET` field.
+
+4. Save the variables and choose **Redeploy** so the container starts with them. Open the Vercel URL and choose **Team login**. The username is `admin`; use the `ADMIN_PASSWORD` value you set.
+
+The first server startup creates the admin and sample jobs. The admin password is only used on initial database setup; changing the Vercel variable later does not change an already-created admin account. Vercel and Supabase may charge depending on plan and usage; check their current pricing before choosing paid features.
+
+### Vercel storage and security notes
+
+- Keep the Storage bucket private. Admin CV links are signed and expire after two minutes.
+- `SUPABASE_SERVICE_ROLE_KEY` grants broad project access. It is used only by the server and must remain a Vercel secret.
+- Use the Supabase Transaction pooler connection string, not a local database or file path. Set `SESSION_SECRET` to a fresh random value; changing it signs out active admin sessions.
+- Local applications, admin credentials, and uploaded CVs are not copied into the hosted Supabase project.
+
 ## Technology choices
 
 - **Python standard library HTTP server:** keeps the application dependency-free and straightforward to run.
-- **SQLite:** provides relational storage, uniqueness constraints, and simple persistent data without a separate database service.
+- **SQLite locally and PostgreSQL on Vercel:** SQLite keeps local setup simple; managed PostgreSQL provides durable hosted records and supports concurrent Vercel instances.
 - **HTML, CSS, and JavaScript:** provide the public site and admin dashboard without a frontend build step.
-- **Docker Compose and a named volume:** offer a repeatable start command while keeping the database and uploaded CVs between container restarts.
+- **Docker Compose locally and Vercel containers for hosting:** keep the local one-command workflow and package the existing Python server for Vercel.
 - **Basic security controls:** salted PBKDF2-HMAC-SHA256 password hashes, HTTP-only and SameSite session cookies, authenticated admin routes, and PDF type/size checks. CV files are stored privately and served through an authenticated route.
 
 ## Assumptions and limitations
@@ -104,7 +157,7 @@ Applications and uploaded CVs are stored on the persistent disk. The app uses SQ
 - Duplicate applications are prevented for the same normalized email address and job. Cover notes are optional.
 - Closing a job prevents new applications while retaining the existing role and applications.
 - Applicants are notified only for Accepted or Rejected status decisions. SMTP is optional; without it, the status still saves.
-- SQLite and local file storage are suitable for a demo. A production deployment needs HTTPS, durable managed file storage, robust session and secret management, and operational monitoring.
+- Local SQLite and file storage are intended for development. Hosted deployments use Supabase for durable records and private CV files, plus signed stateless admin cookies. Production still needs operational monitoring, backups, and a documented data-retention policy.
 
 ## Tests and continuous integration
 
