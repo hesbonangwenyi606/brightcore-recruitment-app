@@ -77,6 +77,18 @@ The careers page can search by role title, location, employment type, and job te
 
 Applicant email is an optional extra and requires working SMTP settings. The message is sent when an admin saves an application as **Accepted** or **Rejected**. With `EMAIL_DRY_RUN=true`, the message is logged by the server for development instead of being sent. If sending fails, the status remains saved and the dashboard reports the email problem.
 
+## Deploy to Render
+
+The repository includes a Render Blueprint in `render.yaml`. It builds the Dockerfile, runs the service in Frankfurt, checks `/healthz`, and mounts a 1 GB persistent disk at `/data` for the database and CV uploads. The Blueprint asks you to provide `ADMIN_PASSWORD`; use a unique password and keep it private.
+
+1. Push the project to GitHub, then sign in to Render and choose **New → Blueprint**.
+2. Connect `hesbonangwenyi606/brightcore-recruitment-app` and select the `main` branch.
+3. Review the Blueprint resources and costs. This service uses a paid web service plan because persistent disks are not available for free web services. Render bills compute and disk storage separately; check the [current Render pricing](https://render.com/pricing).
+4. Set a unique `ADMIN_PASSWORD` when prompted and create the Blueprint. Choose Frankfurt for the service region if asked.
+5. Wait for deployment to finish, open the `onrender.com` URL shown in the Render dashboard, and choose **Team login**. The username is `admin`; the password is the value you supplied for `ADMIN_PASSWORD`.
+
+Applications and uploaded CVs are stored on the persistent disk. The app uses SQLite and in-memory login sessions, so keep it as a single service instance; do not scale it to multiple instances. The Render deployment starts with a fresh database and the three sample jobs; it does not automatically copy local applications or CVs. Applicant email remains optional and can be configured in Render's Environment page using the SMTP variables listed above. Store those credentials as secrets and never commit them.
+
 ## Technology choices
 
 - **Python standard library HTTP server:** keeps the application dependency-free and straightforward to run.
