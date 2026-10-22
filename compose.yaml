@@ -13,7 +13,7 @@ services:
       SMTP_USERNAME: ${SMTP_USERNAME:-}
       SMTP_PASSWORD: ${SMTP_PASSWORD:-}
       SMTP_FROM: ${SMTP_FROM:-}
-      SMTP_FROM_NAME: ${SMTP_FROM_NAME:-BrightCore application}
+      SMTP_FROM_NAME: ${SMTP_FROM_NAME:-BrightCore Recruitment Team}
       SMTP_STARTTLS: ${SMTP_STARTTLS:-true}
       SMTP_USE_SSL: ${SMTP_USE_SSL:-false}
       EMAIL_DRY_RUN: ${EMAIL_DRY_RUN:-false}
