@@ -1,0 +1,25 @@
+services:
+  - type: web
+    name: brightcore-recruitment-app
+    runtime: docker
+    plan: starter
+    region: frankfurt
+    branch: main
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    healthCheckPath: /healthz
+    envVars:
+      - key: PORT
+        value: "10000"
+      - key: ADMIN_PASSWORD
+        sync: false
+      - key: BRIGHTCORE_DB
+        value: /data/brightcore.sqlite3
+      - key: BRIGHTCORE_UPLOADS
+        value: /data/private_uploads
+      - key: SECURE_COOKIES
+        value: "true"
+    disk:
+      name: brightcore-data
+      mountPath: /data
+      sizeGB: 1
