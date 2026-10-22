@@ -96,10 +96,20 @@ async function viewApplication(id){
       </section>`;
     const rejectionField=$('#rejection-message-field');
     const rejectionText=$('#rejection-message');
-    const companySignature=`Kind regards,\nBrightCore Recruitment Team\nBrightCore Technology Services\n📍 Norrsken House Kigali, KG 7 Ave, Kigali, Rwanda\n☎ +250 795 677 819\n🌐 https://www.brightcoretechs.com/`;
+    const companySignature=`Kind regards,\n\nBrightCore Recruitment Team\nBrightCore Technology Services\n\nNorrsken House Kigali\nKG 7 Avenue, Kigali, Rwanda\nPhone: +250 795 677 819\nWebsite: https://www.brightcoretechs.com/`;
+    const normalizeSignature=message=>{
+      const text=message.replace(/\\\s*\r?\n/g,'\n');
+      const start=text.lastIndexOf('Kind regards,');
+      if(start<0)return text;
+      const signature=text.slice(start);
+      if(!signature.includes('BrightCore Recruitment Team')&&!signature.includes('BrightCore Technology Services')&&!signature.includes('+250 795 677 819')&&!signature.includes('brightcoretechs.com'))return text;
+      return `${text.slice(0,start).trimEnd()}\n\n${companySignature}`;
+    };
     const draft=`Hi ${x.full_name},\n\nThank you for applying for the ${x.title} role at BrightCore. We appreciate the time and care you put into your application.\n\nAfter careful consideration, we have decided to move forward with other candidates for this position. We wish you every success in your job search.\n\n${companySignature}`;
     const acceptanceField=$('#acceptance-message-field');
     const acceptanceText=$('#acceptance-message');
+    acceptanceText.value=normalizeSignature(acceptanceText.value);
+    rejectionText.value=normalizeSignature(rejectionText.value);
     const congrats=`Dear ${x.full_name},\n\nWe are pleased to inform you that you have been shortlisted for an interview for the ${x.title} position at BrightCore Technology Services.\n\nFollowing a review of your application, we would like to invite you to discuss your experience, technical skills, and suitability for the role.\n\nPlease reply to this message to confirm your interest. We will then share the interview date, time, and location with you.\n\nThank you for your interest in joining BrightCore Technology Services. We look forward to speaking with you.\n\n${companySignature}`;
     const previousAutoDraft=`Hi ${x.full_name},\n\nCongratulations! We are delighted to offer you the ${x.title} role at BrightCore.`;
     if(acceptanceText.value.startsWith(previousAutoDraft))acceptanceText.value=congrats;
