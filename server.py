@@ -129,8 +129,8 @@ class App(BaseHTTPRequestHandler):
         return json.loads(raw or b'{}')
     def do_GET(self):
         path=urlparse(self.path).path
-        if path in ('/app.js','/style.css'):
-            file=ROOT/path.lstrip('/'); body=file.read_bytes(); mime='application/javascript; charset=utf-8' if path.endswith('.js') else 'text/css; charset=utf-8'; self.send_response(200); self.send_header('Content-Type',mime); self.send_header('Cache-Control','no-store'); self.send_header('Content-Length',str(len(body))); self.end_headers(); self.wfile.write(body); return
+        if path in ('/app.js','/style.css','/assets/hero-background.jpg'):
+            file=ROOT/path.lstrip('/'); body=file.read_bytes(); mime={'/app.js':'application/javascript; charset=utf-8','/style.css':'text/css; charset=utf-8','/assets/hero-background.jpg':'image/jpeg'}[path]; self.send_response(200); self.send_header('Content-Type',mime); self.send_header('Cache-Control','no-store'); self.send_header('Content-Length',str(len(body))); self.end_headers(); self.wfile.write(body); return
         if path.startswith('/api/admin') and not self.session(): return send_json(self,401,{'error':'Please sign in to continue.'})
         if path=='/api/jobs':
             with connect() as db: jobs=db.execute("SELECT * FROM jobs WHERE status='Open' AND closing_date>=date('now') ORDER BY closing_date").fetchall()
