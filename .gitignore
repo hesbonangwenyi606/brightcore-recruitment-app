@@ -1,0 +1,7 @@
+__pycache__/
+*.py[cod]
+brightcore.sqlite3
+brightcore.sqlite3-shm
+brightcore.sqlite3-wal
+private_uploads/
+.env
