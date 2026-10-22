@@ -8,14 +8,14 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 
 WORKDIR /app
 
-COPY server.py index.html app.js style.css ./
+COPY server.py index.html app.js style.css entrypoint.py ./
 COPY assets/ ./assets/
 
 RUN mkdir -p /data/private_uploads \
     && useradd --system --uid 10001 --no-create-home app \
     && chown -R app:app /app /data
 
-USER app
+ENTRYPOINT ["python", "entrypoint.py"]
 
 EXPOSE 8000
 
