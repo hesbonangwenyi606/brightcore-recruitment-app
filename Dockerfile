@@ -9,6 +9,7 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 WORKDIR /app
 
 COPY server.py index.html app.js style.css ./
+COPY assets/ ./assets/
 
 RUN mkdir -p /data/private_uploads \
     && useradd --system --uid 10001 --no-create-home app \
