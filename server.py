@@ -70,7 +70,7 @@ def send_applicant_email(recipient, subject, body):
     if not host or not sender: return 'not_configured'
     if username and not password: return 'missing_credentials'
     message=EmailMessage(); message['Subject']=subject
-    message['From']=formataddr((os.environ.get('SMTP_FROM_NAME','BrightCore application'),sender))
+    message['From']=formataddr((os.environ.get('SMTP_FROM_NAME','BrightCore Recruitment Team'),sender))
     message['To']=recipient; message.set_content(body)
     try:
         port=int(os.environ.get('SMTP_PORT','587'))
