@@ -129,6 +129,7 @@ class App(BaseHTTPRequestHandler):
         return json.loads(raw or b'{}')
     def do_GET(self):
         path=urlparse(self.path).path
+        if path=='/healthz': return send_json(self,200,{'ok':True})
         if path in ('/app.js','/style.css','/assets/hero-background.jpg'):
             file=ROOT/path.lstrip('/'); body=file.read_bytes(); mime={'/app.js':'application/javascript; charset=utf-8','/style.css':'text/css; charset=utf-8','/assets/hero-background.jpg':'image/jpeg'}[path]; self.send_response(200); self.send_header('Content-Type',mime); self.send_header('Cache-Control','no-store'); self.send_header('Content-Length',str(len(body))); self.end_headers(); self.wfile.write(body); return
         if path.startswith('/api/admin') and not self.session(): return send_json(self,401,{'error':'Please sign in to continue.'})
@@ -169,11 +170,11 @@ class App(BaseHTTPRequestHandler):
             with connect() as db: row=db.execute('SELECT * FROM admins WHERE username=?',(str(data.get('username','')),)).fetchone()
             if not row or not password_matches(str(data.get('password','')),row['password_hash']): return send_json(self,401,{'error':'Email or password is incorrect.'})
             sid=secrets.token_urlsafe(32); SESSIONS[sid]=time.time()+8*3600
-            body=json.dumps({'ok':True}).encode(); self.send_response(200); self.send_header('Content-Type','application/json'); self.send_header('Content-Length',str(len(body))); self.send_header('Set-Cookie',f'session={sid}; HttpOnly; SameSite=Strict; Path=/; Max-Age=28800'); self.end_headers(); self.wfile.write(body); return
+            body=json.dumps({'ok':True}).encode(); self.send_response(200); self.send_header('Content-Type','application/json'); self.send_header('Content-Length',str(len(body))); secure='; Secure' if os.environ.get('SECURE_COOKIES','').lower() in ('1','true','yes') else ''; self.send_header('Set-Cookie',f'session={sid}; HttpOnly; SameSite=Strict; Path=/; Max-Age=28800{secure}'); self.end_headers(); self.wfile.write(body); return
         if path=='/api/logout':
             sid=self.session()
             if sid: SESSIONS.pop(sid,None)
-            body=json.dumps({'ok':True}).encode(); self.send_response(200); self.send_header('Content-Type','application/json'); self.send_header('Content-Length',str(len(body))); self.send_header('Set-Cookie','session=; HttpOnly; SameSite=Strict; Path=/; Max-Age=0'); self.end_headers(); self.wfile.write(body); return
+            body=json.dumps({'ok':True}).encode(); self.send_response(200); self.send_header('Content-Type','application/json'); self.send_header('Content-Length',str(len(body))); secure='; Secure' if os.environ.get('SECURE_COOKIES','').lower() in ('1','true','yes') else ''; self.send_header('Set-Cookie',f'session=; HttpOnly; SameSite=Strict; Path=/; Max-Age=0{secure}'); self.end_headers(); self.wfile.write(body); return
         if path=='/api/applications':
             try:
                 jid=int(data.get('job_id',0)); name=str(data.get('full_name','')).strip(); email=str(data.get('email','')).strip().lower(); phone=str(data.get('phone','')).strip(); note=str(data.get('cover_note','')).strip(); cv=data.get('cv')
