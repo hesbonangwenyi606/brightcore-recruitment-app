@@ -27,7 +27,7 @@ class RecruitmentTests(unittest.TestCase):
     @patch.dict(os.environ,{'SMTP_HOST':'smtp.gmail.com','SMTP_FROM':'recruitment@example.test','SMTP_USERNAME':'admin@example.test','SMTP_PASSWORD':''})
     def test_email_reports_missing_smtp_password(self):
         self.assertEqual(server.send_applicant_email('candidate@example.test','Status update','Hello.'),'missing_credentials')
-    @patch.dict(os.environ,{'SMTP_HOST':'smtp.example.test','SMTP_PORT':'587','SMTP_FROM':'careers@brightcore.example','SMTP_USERNAME':'','SMTP_PASSWORD':'','SMTP_STARTTLS':'false'})
+    @patch.dict(os.environ,{'SMTP_HOST':'smtp.example.test','SMTP_PORT':'587','SMTP_FROM':'careers@brightcore.example','SMTP_FROM_NAME':'BrightCore Recruitment Team','SMTP_USERNAME':'','SMTP_PASSWORD':'','SMTP_STARTTLS':'false'})
     @patch('server.smtplib.SMTP')
     def test_applicant_email_uses_configured_sender_and_recipient(self,mock_smtp):
         connection=mock_smtp.return_value.__enter__.return_value
@@ -40,6 +40,13 @@ class RecruitmentTests(unittest.TestCase):
     def test_public_jobs_hide_closed_roles(self):
         with server.connect() as db: db.execute("UPDATE jobs SET status='Closed' WHERE id=1")
         status,_,body=self.request('GET','/api/jobs'); self.assertEqual(status,200); self.assertNotIn(1,[j['id'] for j in json.loads(body)])
+    def test_three_sample_jobs_are_seeded(self):
+        with server.connect() as db: titles={row[0] for row in db.execute('SELECT title FROM jobs')}
+        self.assertTrue({'Senior Product Designer','Backend Engineer','People Operations Associate'}.issubset(titles))
+    def test_public_jobs_page_includes_search(self):
+        status,_,body=self.request('GET','/')
+        self.assertEqual(status,200)
+        self.assertIn(b'id="job-search"',body)
     def test_admin_routes_require_login_and_session_is_issued(self):
         status,_,_=self.request('GET','/api/admin/jobs'); self.assertEqual(status,401)
         status,headers,_=self.request('POST','/api/login',{'username':'admin','password':'BrightCore2026!'}); self.assertEqual(status,200); self.assertIn('HttpOnly',headers['Set-Cookie'])
