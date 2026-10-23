@@ -91,6 +91,20 @@ def send_applicant_email(recipient, subject, body):
     if os.environ.get('EMAIL_DRY_RUN','').lower() in ('1','true','yes'):
         print(f"\n--- EMAIL DRY RUN ---\nTo: {recipient}\nSubject: {subject}\n\n{body}\n--- END EMAIL DRY RUN ---\n",flush=True)
         return 'simulated'
+    resend_api_key=os.environ.get('RESEND_API_KEY','').strip()
+    if resend_api_key:
+        sender=os.environ.get('RESEND_FROM','').strip()
+        if not sender: return 'not_configured'
+        payload=json.dumps({'from':sender,'to':[recipient],'subject':subject,'text':body}).encode('utf-8')
+        request=urllib.request.Request('https://api.resend.com/emails',data=payload,headers={
+            'Authorization':f'Bearer {resend_api_key}',
+            'Content-Type':'application/json',
+        },method='POST')
+        try:
+            with urllib.request.urlopen(request,timeout=15) as response:
+                return 'sent' if 200 <= response.status < 300 else 'failed'
+        except Exception:
+            return 'failed'
     host=os.environ.get('SMTP_HOST','').strip()
     sender=os.environ.get('SMTP_FROM',os.environ.get('SMTP_USERNAME','')).strip()
     username=os.environ.get('SMTP_USERNAME','').strip()

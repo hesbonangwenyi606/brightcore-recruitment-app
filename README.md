@@ -49,9 +49,11 @@ Copy `.env.example` to `.env` and edit values before starting Compose. Email is 
 | `SMTP_FROM_NAME` | Sender display name | `BrightCore Recruitment Team` |
 | `SMTP_STARTTLS` | Use STARTTLS (typical for port 587) | `true` |
 | `SMTP_USE_SSL` | Use implicit SSL (typical for port 465); turn off STARTTLS when enabled | `false` |
+| `RESEND_API_KEY` | Resend API key; when set, the app sends mail through HTTPS instead of SMTP | Empty |
+| `RESEND_FROM` | Sender address on a domain verified with Resend (for example, `BrightCore Recruitment <jobs@your-domain.com>`) | Empty |
 | `EMAIL_DRY_RUN` | Log email content instead of sending it | `false` |
 
-For Gmail, use a Google App Password as `SMTP_PASSWORD`, not your normal Google account password. Email delivery also requires a valid SMTP username, password, and sender address. The application still saves a status update if email is unavailable and displays a delivery notice in the dashboard.
+For Gmail SMTP, use a Google App Password as `SMTP_PASSWORD`, not your normal Google account password. When `RESEND_API_KEY` is set, the app uses the Resend HTTP API and requires `RESEND_FROM` to use a verified sending domain. The application still saves a status update if email is unavailable and displays a delivery notice in the dashboard.
 
 ## Run locally without Docker
 
@@ -75,11 +77,11 @@ The careers page can search by role title, location, employment type, and job te
 
 ## Email notifications
 
-Applicant email is an optional extra and requires working SMTP settings. The message is sent when an admin saves an application as **Accepted** or **Rejected**. With `EMAIL_DRY_RUN=true`, the message is logged by the server for development instead of being sent. If sending fails, the status remains saved and the dashboard reports the email problem.
+Applicant email is an optional extra. The message is sent when an admin saves an application as **Accepted** or **Rejected**. The app can use SMTP or the Resend HTTPS API; `RESEND_API_KEY` takes priority when configured. With `EMAIL_DRY_RUN=true`, the message is logged by the server for development instead of being sent. If sending fails, the status remains saved and the dashboard reports the email problem.
 
 ## Deploy to Render
 
-The repository includes a Render Blueprint in `render.yaml`. It builds the Dockerfile, runs the service in Frankfurt, checks `/healthz`, and mounts a 1 GB persistent disk at `/data` for the database and CV uploads. The Blueprint asks you to provide `ADMIN_PASSWORD`; use a unique password and keep it private.
+The repository includes a Render Blueprint in `render.yaml`. It builds the Dockerfile, runs the service in Frankfurt, checks `/healthz`, and mounts a 1 GB persistent disk at `/data` for the database and CV uploads. The Blueprint asks you to provide `ADMIN_PASSWORD`; use a unique password and keep it private. For a free Render instance, use Supabase Postgres and private Storage as described in the Vercel setup below instead of the local SQLite database and disk. Render Free files are temporary, and the service sleeps when idle.
 
 1. Push the project to GitHub, then sign in to Render and choose **New → Blueprint**.
 2. Connect `hesbonangwenyi606/brightcore-recruitment-app` and select the `main` branch.
@@ -87,7 +89,7 @@ The repository includes a Render Blueprint in `render.yaml`. It builds the Docke
 4. Set a unique `ADMIN_PASSWORD` when prompted and create the Blueprint. Choose Frankfurt for the service region if asked.
 5. Wait for deployment to finish, open the `onrender.com` URL shown in the Render dashboard, and choose **Team login**. The username is `admin`; the password is the value you supplied for `ADMIN_PASSWORD`.
 
-Applications and uploaded CVs are stored on the persistent disk. The app uses SQLite and in-memory login sessions, so keep it as a single service instance; do not scale it to multiple instances. The Render deployment starts with a fresh database and the three sample jobs; it does not automatically copy local applications or CVs. Applicant email remains optional and can be configured in Render's Environment page using the SMTP variables listed above. Store those credentials as secrets and never commit them.
+With the Blueprint, applications and uploaded CVs are stored on the persistent disk. The app uses SQLite and in-memory login sessions, so keep it as a single service instance; do not scale it to multiple instances. This deployment starts with a fresh database and the three sample jobs; it does not automatically copy local applications or CVs. Applicant email is optional. SMTP works on paid Render plans; Render Free blocks SMTP ports, so configure `RESEND_API_KEY` and `RESEND_FROM` in the service's Environment page to use the HTTPS API. Keep the API key private. The sender must belong to a domain verified with Resend.
 
 ## Deploy to Vercel with durable data
 
