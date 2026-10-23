@@ -81,7 +81,7 @@ Applicant email is an optional extra and requires working SMTP settings. The mes
 
 ## Deploy to Render
 
-The repository includes a Render Blueprint in `render.yaml`. It builds the Dockerfile, runs the service in Frankfurt, checks `/healthz`, and mounts a 1 GB persistent disk at `/data` for the database and CV uploads. The Blueprint asks you to provide `ADMIN_PASSWORD`; use a unique password and keep it private. For a free Render instance, use Supabase Postgres and private Storage as described in the Vercel setup below instead of the local SQLite database and disk. Render Free files are temporary, and the service sleeps when idle.
+The repository includes a Render Blueprint in `render.yaml`. It builds the Dockerfile, runs the service in Frankfurt, checks `/healthz`, and mounts a 1 GB persistent disk at `/data` for the database and CV uploads. The Blueprint asks you to provide `ADMIN_PASSWORD`; use a unique password and keep it private. The Blueprint uses a paid plan because Render Free does not provide persistent disks. The live demo may use Render Free, where files are temporary and the service sleeps when idle, so its saved data should be treated as temporary.
 
 1. Push the project to GitHub, then sign in to Render and choose **New → Blueprint**.
 2. Connect `hesbonangwenyi606/brightcore-recruitment-app` and select the `main` branch.
@@ -91,65 +91,12 @@ The repository includes a Render Blueprint in `render.yaml`. It builds the Docke
 
 With the Blueprint, applications and uploaded CVs are stored on the persistent disk. The app uses SQLite and in-memory login sessions, so keep it as a single service instance; do not scale it to multiple instances. This deployment starts with a fresh database and the three sample jobs; it does not automatically copy local applications or CVs. Applicant email is optional. SMTP works on paid Render plans; Render Free blocks SMTP ports, so applicant notifications are unavailable on that plan.
 
-## Deploy to Vercel with durable data
-
-Vercel containers are stateless, so the Vercel deployment uses Supabase Postgres for jobs and applications and a **private** Supabase Storage bucket for CVs. The browser uploads each CV directly to Storage using a short-lived signed upload URL; CVs are never made public. Local Docker Compose continues to use SQLite and its named volume.
-
-### 1. Create the Supabase resources
-
-1. Create a Supabase project at [supabase.com/dashboard](https://supabase.com/dashboard).
-2. In **Storage**, create a private bucket named `candidate-cvs`. Set the file size limit to 5 MB and allowed MIME type to `application/pdf`.
-3. In **Project Settings → API**, copy the project URL and the `service_role` key. The service role key is secret; do not put it in the browser or commit it.
-4. In **Project Settings → Database**, copy the Transaction pooler connection string for Vercel and ensure its SSL mode is `require`. Replace the password placeholder with your database password.
-
-The app creates its tables and three sample jobs the first time it connects to an empty database. It does not import your local SQLite data or existing CVs.
-
-### 2. Deploy from GitHub
-
-1. Push the latest code to GitHub.
-2. In Vercel, choose **Add New → Project**, import `hesbonangwenyi606/brightcore-recruitment-app`, and deploy the `main` branch. Vercel detects `Dockerfile.vercel` and builds the Python HTTP server as a container.
-3. Before or after the first build, open **Project Settings → Environment Variables** and add these values for Production (and Preview if you want preview deployments):
-
-   | Variable | Value |
-   | --- | --- |
-   | `DATABASE_URL` | Supabase Postgres connection string |
-   | `SUPABASE_URL` | Supabase project URL |
-   | `SUPABASE_SERVICE_ROLE_KEY` | Supabase `service_role` key; keep secret |
-   | `SUPABASE_CV_BUCKET` | `candidate-cvs` |
-   | `SESSION_SECRET` | A new random secret with at least 32 characters |
-   | `ADMIN_PASSWORD` | A strong, unique initial admin password |
-   | `SECURE_COOKIES` | `true` |
-   | `PORT` | `80` |
-
-   Add the optional `SMTP_*` values from the table above if you want applicant status emails. Never paste database, service role, SMTP, or session secrets into GitHub or chat.
-
-   To generate a session secret locally in Windows PowerShell, run:
-
-   ```powershell
-   $bytes = New-Object byte[] 32
-   [Security.Cryptography.RandomNumberGenerator]::Create().GetBytes($bytes)
-   [Convert]::ToBase64String($bytes)
-   ```
-
-   Copy the generated value directly into Vercel's `SESSION_SECRET` field.
-
-4. Save the variables and choose **Redeploy** so the container starts with them. Open the Vercel URL and choose **Team login**. The username is `admin`; use the `ADMIN_PASSWORD` value you set.
-
-The first server startup creates the admin and sample jobs. The admin password is only used on initial database setup; changing the Vercel variable later does not change an already-created admin account. Vercel and Supabase may charge depending on plan and usage; check their current pricing before choosing paid features.
-
-### Vercel storage and security notes
-
-- Keep the Storage bucket private. Admin CV links are signed and expire after two minutes.
-- `SUPABASE_SERVICE_ROLE_KEY` grants broad project access. It is used only by the server and must remain a Vercel secret.
-- Use the Supabase Transaction pooler connection string, not a local database or file path. Set `SESSION_SECRET` to a fresh random value; changing it signs out active admin sessions.
-- Local applications, admin credentials, and uploaded CVs are not copied into the hosted Supabase project.
-
 ## Technology choices
 
 - **Python standard library HTTP server:** keeps the application dependency-free and straightforward to run.
-- **SQLite locally and PostgreSQL on Vercel:** SQLite keeps local setup simple; managed PostgreSQL provides durable hosted records and supports concurrent Vercel instances.
+- **SQLite:** keeps local setup simple and stores jobs and applications in a database.
 - **HTML, CSS, and JavaScript:** provide the public site and admin dashboard without a frontend build step.
-- **Docker Compose locally and Vercel containers for hosting:** keep the local one-command workflow and package the existing Python server for Vercel.
+- **Docker Compose locally and Render for hosting:** keep the local one-command workflow and package the Python server for deployment.
 - **Basic security controls:** salted PBKDF2-HMAC-SHA256 password hashes, HTTP-only and SameSite session cookies, authenticated admin routes, and PDF type/size checks. CV files are stored privately and served through an authenticated route.
 
 ## Assumptions and limitations
@@ -159,7 +106,7 @@ The first server startup creates the admin and sample jobs. The admin password i
 - Duplicate applications are prevented for the same normalized email address and job. Cover notes are optional.
 - Closing a job prevents new applications while retaining the existing role and applications.
 - Applicants are notified only for Accepted or Rejected status decisions. SMTP is optional; without it, the status still saves.
-- Local SQLite and file storage are intended for development. Hosted deployments use Supabase for durable records and private CV files, plus signed stateless admin cookies. Production still needs operational monitoring, backups, and a documented data-retention policy.
+- Local SQLite and file storage work for development. On Render, use a persistent disk to retain the database and uploaded CVs across restarts. Production still needs operational monitoring, backups, and a documented data-retention policy.
 
 ## Tests and continuous integration
 
