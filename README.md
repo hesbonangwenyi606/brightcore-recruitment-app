@@ -2,8 +2,6 @@
 
 A responsive recruitment portal for BrightCore Technology Services. Candidates can browse and search open roles, read role details, and submit an application with a PDF CV. The hiring team can manage roles, review applications, download CVs, record notes, and update applicant status from a private dashboard.
 
-Live demo: [https://brightcore-recruitment-app.onrender.com](https://brightcore-recruitment-app.onrender.com)
-
 ## Run the app with Docker Compose
 
 ### Requirements
