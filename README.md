@@ -2,6 +2,8 @@
 
 A responsive recruitment portal for BrightCore Technology Services. Candidates can browse and search open roles, read role details, and submit an application with a PDF CV. The hiring team can manage roles, review applications, download CVs, record notes, and update applicant status from a private dashboard.
 
+Live demo: [https://brightcore-recruitment-app.onrender.com](https://brightcore-recruitment-app.onrender.com)
+
 ## Run the app with Docker Compose
 
 ### Requirements
@@ -49,11 +51,9 @@ Copy `.env.example` to `.env` and edit values before starting Compose. Email is 
 | `SMTP_FROM_NAME` | Sender display name | `BrightCore Recruitment Team` |
 | `SMTP_STARTTLS` | Use STARTTLS (typical for port 587) | `true` |
 | `SMTP_USE_SSL` | Use implicit SSL (typical for port 465); turn off STARTTLS when enabled | `false` |
-| `RESEND_API_KEY` | Resend API key; when set, the app sends mail through HTTPS instead of SMTP | Empty |
-| `RESEND_FROM` | Sender address on a domain verified with Resend (for example, `BrightCore Recruitment <jobs@your-domain.com>`) | Empty |
 | `EMAIL_DRY_RUN` | Log email content instead of sending it | `false` |
 
-For Gmail SMTP, use a Google App Password as `SMTP_PASSWORD`, not your normal Google account password. When `RESEND_API_KEY` is set, the app uses the Resend HTTP API and requires `RESEND_FROM` to use a verified sending domain. The application still saves a status update if email is unavailable and displays a delivery notice in the dashboard.
+For Gmail SMTP, use a Google App Password as `SMTP_PASSWORD`, not your normal Google account password. The application still saves a status update if email is unavailable and displays a delivery notice in the dashboard.
 
 ## Run locally without Docker
 
@@ -73,11 +73,11 @@ When the database has no roles, the app creates three sample jobs:
 - Backend Engineer — Remote · East Africa — Full-time
 - People Operations Associate — Nairobi, Kenya — Contract
 
-The careers page can search by role title, location, employment type, and job text. Candidates can submit one application per job and email address, with a required PDF CV up to 10 MB and an optional cover note. The private dashboard includes an overview, role management, applicant filtering by status, CV viewing and download, internal notes, and status decisions. Accepted and rejected decisions can send a customized message to the applicant once for each status decision.
+The careers page can search by role title, location, employment type, and job text. Candidates can submit one application per job and email address, with a required PDF CV up to 5 MB and an optional cover note. The private dashboard includes an overview, role management, applicant filtering by job and status, CV viewing and download, internal notes, and status decisions. Accepted and rejected decisions can send a customized message to the applicant once for each status decision.
 
 ## Email notifications
 
-Applicant email is an optional extra. The message is sent when an admin saves an application as **Accepted** or **Rejected**. The app can use SMTP or the Resend HTTPS API; `RESEND_API_KEY` takes priority when configured. With `EMAIL_DRY_RUN=true`, the message is logged by the server for development instead of being sent. If sending fails, the status remains saved and the dashboard reports the email problem.
+Applicant email is an optional extra and requires working SMTP settings. The message is sent when an admin saves an application as **Accepted** or **Rejected**. With `EMAIL_DRY_RUN=true`, the message is logged by the server for development instead of being sent. If sending fails, the status remains saved and the dashboard reports the email problem. Render Free blocks SMTP ports, so notifications require a paid Render plan.
 
 ## Deploy to Render
 
@@ -89,7 +89,7 @@ The repository includes a Render Blueprint in `render.yaml`. It builds the Docke
 4. Set a unique `ADMIN_PASSWORD` when prompted and create the Blueprint. Choose Frankfurt for the service region if asked.
 5. Wait for deployment to finish, open the `onrender.com` URL shown in the Render dashboard, and choose **Team login**. The username is `admin`; the password is the value you supplied for `ADMIN_PASSWORD`.
 
-With the Blueprint, applications and uploaded CVs are stored on the persistent disk. The app uses SQLite and in-memory login sessions, so keep it as a single service instance; do not scale it to multiple instances. This deployment starts with a fresh database and the three sample jobs; it does not automatically copy local applications or CVs. Applicant email is optional. SMTP works on paid Render plans; Render Free blocks SMTP ports, so configure `RESEND_API_KEY` and `RESEND_FROM` in the service's Environment page to use the HTTPS API. Keep the API key private. The sender must belong to a domain verified with Resend.
+With the Blueprint, applications and uploaded CVs are stored on the persistent disk. The app uses SQLite and in-memory login sessions, so keep it as a single service instance; do not scale it to multiple instances. This deployment starts with a fresh database and the three sample jobs; it does not automatically copy local applications or CVs. Applicant email is optional. SMTP works on paid Render plans; Render Free blocks SMTP ports, so applicant notifications are unavailable on that plan.
 
 ## Deploy to Vercel with durable data
 
@@ -98,7 +98,7 @@ Vercel containers are stateless, so the Vercel deployment uses Supabase Postgres
 ### 1. Create the Supabase resources
 
 1. Create a Supabase project at [supabase.com/dashboard](https://supabase.com/dashboard).
-2. In **Storage**, create a private bucket named `candidate-cvs`. Set the file size limit to 10 MB and allowed MIME type to `application/pdf`.
+2. In **Storage**, create a private bucket named `candidate-cvs`. Set the file size limit to 5 MB and allowed MIME type to `application/pdf`.
 3. In **Project Settings → API**, copy the project URL and the `service_role` key. The service role key is secret; do not put it in the browser or commit it.
 4. In **Project Settings → Database**, copy the Transaction pooler connection string for Vercel and ensure its SSL mode is `require`. Replace the password placeholder with your database password.
 
@@ -169,8 +169,8 @@ Run the standard-library integration tests with:
 python -m unittest discover -s tests -v
 ```
 
-The tests cover password hashing, admin route protection, sample roles, the public search control, closed-job filtering, and duplicate application rejection. GitHub Actions runs the tests, validates the Compose configuration, and builds the Docker image for pushes and pull requests targeting `main`.
+The tests cover password hashing, admin route protection, sample roles, successful application submission and its initial Pending status, closed and expired job rejection, duplicate applications, the 5 MB CV size boundary, job filtering, and status changes. GitHub Actions runs the tests, validates the Compose configuration, and builds the Docker image for pushes and pull requests targeting `main`.
 
 ## Improvements with more time
 
-I would add CSRF protection, configurable admin accounts and password rotation, pagination for larger applicant lists, more comprehensive audit logging, production deployment settings, and managed storage for uploaded files.
+I would add CSRF protection, configurable admin accounts and password rotation, pagination for larger applicant lists, more comprehensive audit logging, an HTTPS email provider for free hosting plans, and managed storage for uploaded files.

@@ -24,7 +24,7 @@ from urllib.parse import parse_qs, urlparse
 ROOT = Path(__file__).parent
 DB_PATH = Path(os.environ.get('BRIGHTCORE_DB', ROOT / 'brightcore.sqlite3'))
 UPLOAD_DIR = Path(os.environ.get('BRIGHTCORE_UPLOADS', ROOT / 'private_uploads'))
-MAX_CV = 10 * 1024 * 1024
+MAX_CV = 5 * 1024 * 1024
 SESSIONS = {}
 DATABASE_URL = os.environ.get('DATABASE_URL', '').strip()
 SUPABASE_URL = os.environ.get('SUPABASE_URL', '').rstrip('/')
@@ -178,7 +178,7 @@ def storage_request(method, path, payload=None, content_type='application/json')
     })
     with urllib.request.urlopen(request, timeout=20) as response:
         raw = response.read(MAX_CV + 1)
-        if len(raw) > MAX_CV: raise ValueError('Stored CV is larger than 10 MB.')
+        if len(raw) > MAX_CV: raise ValueError('Stored CV is larger than 5 MB.')
         return json.loads(raw) if raw else {}
 
 def create_session_cookie(handler, token, max_age):
@@ -267,7 +267,7 @@ class App(BaseHTTPRequestHandler):
                 data=self.body()
                 filename=Path(str(data.get('filename',''))).name
                 if not filename.lower().endswith('.pdf') or int(data.get('size',0)) < 5 or int(data.get('size',0)) > MAX_CV:
-                    return send_json(self,400,{'error':'Upload a PDF CV no larger than 10 MB.'})
+                    return send_json(self,400,{'error':'Upload a PDF CV no larger than 5 MB.'})
                 object_path=secrets.token_hex(24)+'.pdf'
                 signed=storage_request('POST','/object/upload/sign/'+urllib.parse.quote(SUPABASE_CV_BUCKET, safe='')+'/'+object_path,{})
                 url=signed.get('url') or signed.get('signedURL') or signed.get('signedUrl')
@@ -311,9 +311,10 @@ class App(BaseHTTPRequestHandler):
                         payload=storage_request('GET','/object/authenticated/'+urllib.parse.quote(SUPABASE_CV_BUCKET, safe='')+'/'+cv_path)
                     except Exception: raise ValueError('Could not verify your uploaded CV. Please upload it again.')
                     if not payload.startswith(b'%PDF-'): raise ValueError('Upload a valid PDF CV.')
+                    if len(payload)>MAX_CV: raise ValueError('Your CV must be no larger than 5 MB.')
                 else:
                     if not isinstance(cv,dict) or not cv.get('filename') or not cv['filename'].lower().endswith('.pdf') or not cv['data'].startswith(b'%PDF-'): raise ValueError('Upload a valid PDF CV.')
-                    if len(cv['data'])>MAX_CV: raise ValueError('Your CV must be no larger than 10 MB.')
+                    if len(cv['data'])>MAX_CV: raise ValueError('Your CV must be no larger than 5 MB.')
                     cv_filename=Path(cv['filename']).name
                 with connect() as db:
                     job=db.execute("SELECT id FROM jobs WHERE id=? AND status='Open' AND closing_date>="+('CURRENT_DATE' if DATABASE_URL else "date('now')"),(jid,)).fetchone()
