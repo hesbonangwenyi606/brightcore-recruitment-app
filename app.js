@@ -97,7 +97,7 @@ async function viewApplication(id){
       </section>`;
     const rejectionField=$('#rejection-message-field');
     const rejectionText=$('#rejection-message');
-    const companySignature=`Kind regards,\n\nBrightCore Recruitment Team\nBrightCore Technology Services\n\nNorrsken House Kigali\nKG 7 Avenue, Kigali, Rwanda\nPhone: +250 795 677 819\nWebsite: https://www.brightcoretechs.com/`;
+    const companySignature=`Kind regards,\n\nBrightCore Recruitment Team\nNorrsken House Kigali\nKG 7 Avenue, Kigali, Rwanda\nPhone: +250 795 677 819\nWebsite: https://www.brightcoretechs.com/`;
     const normalizeSignature=message=>{
       const text=message.replace(/\\\s*\r?\n/g,'\n');
       const start=text.lastIndexOf('Kind regards,');
@@ -115,7 +115,7 @@ async function viewApplication(id){
     const previousAutoDraft=`Hi ${x.full_name},\n\nCongratulations! We are delighted to offer you the ${x.title} role at BrightCore.`;
     if(acceptanceText.value.startsWith(previousAutoDraft))acceptanceText.value=congrats;
     const legacySignatures=[
-      'Kind regards,\nBrightCore Recruitment Team\nBrightCore Technology Services\nNorrsken House Kigali, KG 7 Ave, Kigali, Rwanda\nPhone: +250 795 677 819\nWebsite: https://www.brightcoretechs.com/',
+      'Kind regards,\nBrightCore Recruitment Team\nNorrsken House Kigali, KG 7 Ave, Kigali, Rwanda\nPhone: +250 795 677 819\nWebsite: https://www.brightcoretechs.com/',
       'Kind regards,\nBrightCore Recruitment Team',
       'Warm regards,\nThe BrightCore team'
     ];
