@@ -2,6 +2,8 @@
 
 A recruitment website where people can find jobs and apply. Admins can post jobs and manage applications.
 
+Live demo: [https://brightcore-recruitment-app.onrender.com](https://brightcore-recruitment-app.onrender.com)
+
 ## Run the app
 
 You need Docker Desktop running on Windows or macOS, or Docker Engine with Docker Compose on Linux.
@@ -68,4 +70,9 @@ python -m unittest discover -s tests -v
 
 ## Improvements I would make with more time
 
-I would add password reset, extra protection for admin forms, pages for large applicant lists, and more activity logging.
+- Add CSRF protection for admin forms.
+- Let admins change their passwords and manage admin accounts.
+- Add pages to make large applicant lists easier to browse.
+- Keep a more complete record of admin actions.
+- Use an email provider that works on free hosting plans.
+- Store uploaded CVs in managed file storage.
