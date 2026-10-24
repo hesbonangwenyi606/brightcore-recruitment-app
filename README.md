@@ -2,8 +2,6 @@
 
 A recruitment website where people can find jobs and apply. Admins can post jobs and manage applications.
 
-Live demo: [https://brightcore-recruitment-app.onrender.com](https://brightcore-recruitment-app.onrender.com)
-
 ## Run the app
 
 You need Docker Desktop running on Windows or macOS, or Docker Engine with Docker Compose on Linux.
